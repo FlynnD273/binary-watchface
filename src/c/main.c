@@ -11,7 +11,7 @@ static int minute = 0;
 static int hour = 0;
 static uint8_t batt_percent = 100;
 
-#ifdef PBL_PLATFORM_CHALK
+#ifdef PBL_ROUND
 static GPoint batt_lines[BATT_SEG_COUNT * 2 + 2];
 #endif
 
@@ -69,7 +69,7 @@ static void handle_battery(BatteryChargeState charge_state) {
 
 static void battery_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
-#ifdef PBL_PLATFORM_CHALK
+#ifdef PBL_ROUND
   graphics_context_set_stroke_color(ctx, GColorBlack);
   graphics_context_set_stroke_width(ctx, 4);
   graphics_draw_arc(ctx, GRect(2, 2, bounds.size.w - 4, bounds.size.h - 4),
@@ -127,7 +127,7 @@ static void main_window_load(Window *window) {
 
   tick_timer_service_subscribe(MINUTE_UNIT | HOUR_UNIT, handle_minute_tick);
 
-#ifdef PBL_PLATFORM_CHALK
+#ifdef PBL_ROUND
   GRect batt_frame = GRect(0, 0, bounds.size.w, bounds.size.h);
 #else
   GRect batt_frame = GRect(0, bounds.size.h - 5, bounds.size.w, 5);
@@ -140,7 +140,7 @@ static void main_window_load(Window *window) {
 
   layer_add_child(window_layer, s_minute_layer);
   layer_add_child(window_layer, s_hour_layer);
-#ifdef PBL_PLATFORM_CHALK
+#ifdef PBL_ROUND
   for (int i = 0; i <= BATT_SEG_COUNT; i++) {
     int angle = -TRIG_MAX_ANGLE * i / BATT_SEG_COUNT / 2 + TRIG_MAX_ANGLE / 2;
     batt_lines[i * 2] =
@@ -162,7 +162,7 @@ static void main_window_unload(Window *window) {
   battery_state_service_unsubscribe();
   layer_destroy(s_minute_layer);
   layer_destroy(s_hour_layer);
-#ifndef PBL_PLATFORM_CHALK
+#ifndef PBL_ROUND
   layer_destroy(s_battery_layer);
 #endif
 }
