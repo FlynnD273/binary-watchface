@@ -1,16 +1,19 @@
 #include <pebble.h>
+#define BATT_SEG_COUNT 5
 
 static Window *s_main_window;
 
 static Layer *s_minute_layer;
 static Layer *s_hour_layer;
-#ifndef PBL_PLATFORM_CHALK
 static Layer *s_battery_layer;
-#endif
 
 static int minute = 0;
 static int hour = 0;
-static uint8_t batt_percent = 0;
+static uint8_t batt_percent = 100;
+
+#ifdef PBL_PLATFORM_CHALK
+static GPoint batt_lines[BATT_SEG_COUNT * 2 + 2];
+#endif
 
 /**
  * Redraw the time UI elements
@@ -49,7 +52,6 @@ static void draw_binary(Layer *layer, GContext *ctx, int digits, int number) {
 }
 
 static void minute_update_proc(Layer *layer, GContext *ctx) {
-  GRect bounds = layer_get_frame(layer);
   draw_binary(layer, ctx, 6, minute);
 }
 
@@ -57,17 +59,36 @@ static void hour_update_proc(Layer *layer, GContext *ctx) {
   draw_binary(layer, ctx, 4, hour);
 }
 
-#ifndef PBL_PLATFORM_CHALK
 /**
  * Called when the battery level changes.
  */
 static void handle_battery(BatteryChargeState charge_state) {
   batt_percent = charge_state.charge_percent;
+  batt_percent = 70;
   layer_mark_dirty(s_battery_layer);
 }
 
 static void battery_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
+#ifdef PBL_PLATFORM_CHALK
+  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_width(ctx, 4);
+  graphics_draw_arc(ctx, GRect(2, 2, bounds.size.w - 4, bounds.size.h - 4),
+                    GOvalScaleModeFitCircle,
+                    DEG_TO_TRIGANGLE(91 + 180 * (100 - batt_percent) / 100),
+                    DEG_TO_TRIGANGLE(269));
+
+  // Little pips to make it easier to see
+  graphics_context_set_stroke_width(ctx, 2);
+  for (int i = 0; i <= BATT_SEG_COUNT; i++) {
+    if (i * 100 / BATT_SEG_COUNT <= batt_percent) {
+      graphics_context_set_stroke_color(ctx, GColorWhite);
+    } else {
+      graphics_context_set_stroke_color(ctx, GColorBlack);
+    }
+    graphics_draw_line(ctx, batt_lines[i * 2], batt_lines[i * 2 + 1]);
+  }
+#else
   GRect batt_bar =
       GRect(0, 0, bounds.size.w * batt_percent / 100, bounds.size.h);
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -75,7 +96,7 @@ static void battery_update_proc(Layer *layer, GContext *ctx) {
   graphics_fill_rect(ctx, batt_bar, 0, 0);
 
   // Little pips to make it easier to see
-  for (uint8_t i = 0; i <= 100; i += 20) {
+  for (uint8_t i = 0; i <= 100; i += 100 / BATT_SEG_COUNT) {
     if (i < batt_percent) {
       graphics_context_set_stroke_color(ctx, GColorWhite);
     } else {
@@ -84,8 +105,8 @@ static void battery_update_proc(Layer *layer, GContext *ctx) {
     uint8_t x = (bounds.size.w - 1) * i / 100;
     graphics_draw_line(ctx, GPoint(x, 0), GPoint(x, bounds.size.h));
   }
-}
 #endif
+}
 
 static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -107,17 +128,34 @@ static void main_window_load(Window *window) {
 
   tick_timer_service_subscribe(MINUTE_UNIT | HOUR_UNIT, handle_minute_tick);
 
-#ifndef PBL_PLATFORM_CHALK
+#ifdef PBL_PLATFORM_CHALK
+  GRect batt_frame = GRect(0, 0, bounds.size.w, bounds.size.h);
+#else
   GRect batt_frame = GRect(0, bounds.size.h - 5, bounds.size.w, 5);
+#endif
   s_battery_layer = layer_create(batt_frame);
   layer_set_update_proc(s_battery_layer, battery_update_proc);
   handle_battery(battery_state_service_peek());
   battery_state_service_subscribe(handle_battery);
   layer_add_child(window_layer, s_battery_layer);
-#endif
 
   layer_add_child(window_layer, s_minute_layer);
   layer_add_child(window_layer, s_hour_layer);
+#ifdef PBL_PLATFORM_CHALK
+  for (int i = 0; i <= BATT_SEG_COUNT; i++) {
+    int angle = -TRIG_MAX_ANGLE * i / BATT_SEG_COUNT / 2 + TRIG_MAX_ANGLE / 2;
+    batt_lines[i * 2] =
+        GPoint((bounds.size.w / 2) +
+                   (bounds.size.w / 2 - 5) * cos_lookup(angle) / TRIG_MAX_RATIO,
+               (bounds.size.h / 2) + (bounds.size.h / 2 - 5) *
+                                         sin_lookup(angle) / TRIG_MAX_RATIO);
+    batt_lines[i * 2 + 1] =
+        GPoint((bounds.size.w / 2) +
+                   (bounds.size.w / 2) * cos_lookup(angle) / TRIG_MAX_RATIO,
+               (bounds.size.h / 2) +
+                   (bounds.size.h / 2) * sin_lookup(angle) / TRIG_MAX_RATIO);
+  }
+#endif
 }
 
 static void main_window_unload(Window *window) {
