@@ -64,7 +64,6 @@ static void hour_update_proc(Layer *layer, GContext *ctx) {
  */
 static void handle_battery(BatteryChargeState charge_state) {
   batt_percent = charge_state.charge_percent;
-  batt_percent = 70;
   layer_mark_dirty(s_battery_layer);
 }
 
