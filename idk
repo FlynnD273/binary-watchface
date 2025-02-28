@@ -1,0 +1,47 @@
+static Window *s_main_window;
+static Layer *s_canvas_layer;
+
+static void canvas_update_proc(Layer *layer, GContext *ctx) {
+    GRect bounds = layer_get_bounds(layer);
+
+    // Define an ellipse by setting an elliptical bounding box
+    GRect ellipse_bounds = GRect(20, 30, 100, 60); // X, Y, Width, Height
+
+    // Draw the ellipse using graphics_fill_radial()
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_radial(ctx, ellipse_bounds, GOvalScaleModeFitCircle, 30, 0, TRIG_MAX_ANGLE);
+}
+
+static void main_window_load(Window *window) {
+    Layer *window_layer = window_get_root_layer(window);
+    GRect bounds = layer_get_bounds(window_layer);
+
+    s_canvas_layer = layer_create(bounds);
+    layer_set_update_proc(s_canvas_layer, canvas_update_proc);
+    layer_add_child(window_layer, s_canvas_layer);
+}
+
+static void main_window_unload(Window *window) {
+    layer_destroy(s_canvas_layer);
+}
+
+static void init() {
+    s_main_window = window_create();
+    window_set_window_handlers(s_main_window, (WindowHandlers){
+        .load = main_window_load,
+        .unload = main_window_unload
+    });
+
+    window_stack_push(s_main_window, true);
+}
+
+static void deinit() {
+    window_destroy(s_main_window);
+}
+
+int main(void) {
+    init();
+    app_event_loop();
+    deinit();
+}
+
