@@ -1,5 +1,5 @@
 {
-  "name": "Binary Watchface",
+  "name": "Binary",
   "author": "Flynn Duniho",
   "version": "1.0.0",
   "keywords": [
@@ -8,7 +8,7 @@
   "private": true,
   "dependencies": {},
   "pebble": {
-    "displayName": "Binary Watchface",
+    "displayName": "Binary",
     "uuid": "e91880a5-fbd4-4074-8d5f-4154608bca32",
     "sdkVersion": "3",
     "enableMultiJS": true,
