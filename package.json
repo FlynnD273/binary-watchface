@@ -7,6 +7,12 @@
   ],
   "private": true,
   "dependencies": {},
+  "targetPlatforms": [
+    "aplite",
+    "basalt",
+    "chalk",
+    "diorite"
+  ],
   "pebble": {
     "displayName": "Binary",
     "uuid": "e91880a5-fbd4-4074-8d5f-4154608bca32",
