@@ -4,7 +4,9 @@ static Window *s_main_window;
 
 static Layer *s_minute_layer;
 static Layer *s_hour_layer;
+#ifndef PBL_PLATFORM_CHALK
 static Layer *s_battery_layer;
+#endif
 
 static int minute = 0;
 static int hour = 0;
@@ -55,6 +57,7 @@ static void hour_update_proc(Layer *layer, GContext *ctx) {
   draw_binary(layer, ctx, 4, hour);
 }
 
+#ifndef PBL_PLATFORM_CHALK
 /**
  * Called when the battery level changes.
  */
@@ -82,6 +85,7 @@ static void battery_update_proc(Layer *layer, GContext *ctx) {
     graphics_draw_line(ctx, GPoint(x, 0), GPoint(x, bounds.size.h));
   }
 }
+#endif
 
 static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -94,11 +98,6 @@ static void main_window_load(Window *window) {
       GRect(0, bounds.size.h / 4, bounds.size.w, bounds.size.h / 2));
   layer_set_update_proc(s_minute_layer, minute_update_proc);
 
-  GRect batt_frame = GRect(0, bounds.size.h - 5, bounds.size.w, 5);
-  s_battery_layer = layer_create(batt_frame);
-  layer_set_update_proc(s_battery_layer, battery_update_proc);
-  handle_battery(battery_state_service_peek());
-
   // Ensures time is displayed immediately (will break if NULL tick event
   // accessed). (This is why it's a good idea to have a separate routine to do
   // the update itself.)
@@ -107,11 +106,18 @@ static void main_window_load(Window *window) {
   handle_minute_tick(current_time, MINUTE_UNIT | HOUR_UNIT);
 
   tick_timer_service_subscribe(MINUTE_UNIT | HOUR_UNIT, handle_minute_tick);
+
+#ifndef PBL_PLATFORM_CHALK
+  GRect batt_frame = GRect(0, bounds.size.h - 5, bounds.size.w, 5);
+  s_battery_layer = layer_create(batt_frame);
+  layer_set_update_proc(s_battery_layer, battery_update_proc);
+  handle_battery(battery_state_service_peek());
   battery_state_service_subscribe(handle_battery);
+  layer_add_child(window_layer, s_battery_layer);
+#endif
 
   layer_add_child(window_layer, s_minute_layer);
   layer_add_child(window_layer, s_hour_layer);
-  layer_add_child(window_layer, s_battery_layer);
 }
 
 static void main_window_unload(Window *window) {
@@ -119,7 +125,9 @@ static void main_window_unload(Window *window) {
   battery_state_service_unsubscribe();
   layer_destroy(s_minute_layer);
   layer_destroy(s_hour_layer);
+#ifndef PBL_PLATFORM_CHALK
   layer_destroy(s_battery_layer);
+#endif
 }
 
 static void init() {
