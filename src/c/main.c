@@ -25,10 +25,12 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
   }
   if (units_changed & HOUR_UNIT) {
     hour = tick_time->tm_hour;
-    // Convert 24 to 12 hour time
-    hour %= 12;
-    if (hour == 0) {
-      hour = 12;
+    if (!clock_is_24h_style()) {
+      // Convert 24 to 12 hour time
+      hour %= 12;
+      if (hour == 0) {
+        hour = 12;
+      }
     }
     layer_mark_dirty(s_hour_layer);
   }
@@ -56,7 +58,11 @@ static void minute_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void hour_update_proc(Layer *layer, GContext *ctx) {
-  draw_binary(layer, ctx, 4, hour);
+  if (clock_is_24h_style()) {
+    draw_binary(layer, ctx, 5, hour);
+  } else {
+    draw_binary(layer, ctx, 4, hour);
+  }
 }
 
 /**
@@ -125,7 +131,7 @@ static void main_window_load(Window *window) {
   struct tm *current_time = localtime(&now);
   handle_minute_tick(current_time, MINUTE_UNIT | HOUR_UNIT);
 
-  tick_timer_service_subscribe(MINUTE_UNIT | HOUR_UNIT, handle_minute_tick);
+  tick_timer_service_subscribe(SECOND_UNIT, handle_minute_tick);
 
 #ifdef PBL_ROUND
   GRect batt_frame = GRect(0, 0, bounds.size.w, bounds.size.h);
